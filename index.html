@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Drift | Catch the Light</title>
+  <style>
+    :root {
+      --ink: #f4f7ff;
+      --muted: #9ca8c7;
+      --line: rgba(193, 210, 255, 0.16);
+      --panel: rgba(12, 18, 38, 0.82);
+      --cyan: #5ef6dc;
+      --pink: #ff70b8;
+      --yellow: #ffe66d;
+      --danger: #ff6b7d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: #080b19;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.32;
+      background-image: linear-gradient(rgba(123, 143, 201, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(123, 143, 201, 0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
+    }
+
+    .page {
+      width: min(1060px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 42px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      font-weight: 400;
+      line-height: 0.9;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      max-width: 260px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .game-shell {
+      position: relative;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(24, 34, 69, 0.88), rgba(9, 13, 29, 0.9));
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35), inset 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 8px 14px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.7rem;
+      line-height: 1;
+    }
+
+    .lives { color: var(--pink); letter-spacing: 0.12em; }
+
+    button {
+      border: 1px solid rgba(94, 246, 220, 0.45);
+      border-radius: 999px;
+      padding: 11px 18px;
+      color: #071118;
+      background: var(--cyan);
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(94, 246, 220, 0.22); }
+    button:active { transform: translateY(0); }
+
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #090d20;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(65vh, 580px);
+      min-height: 380px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(5, 8, 20, 0.72);
+      backdrop-filter: blur(5px);
+      transition: opacity 220ms ease;
+    }
+
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .overlay-card {
+      max-width: 430px;
+      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      text-align: center;
+      background: rgba(16, 23, 48, 0.88);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 10px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.5rem;
+      font-weight: 400;
+    }
+
+    .overlay-card p { margin: 0 0 22px; color: var(--muted); line-height: 1.6; }
+
+    .instructions {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 13px 8px 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .instructions strong { color: var(--yellow); font-weight: 600; }
+
+    @media (max-width: 620px) {
+      .page { width: min(100% - 20px, 1060px); padding-top: 20px; }
+      header { align-items: start; flex-direction: column; }
+      .tagline { max-width: 320px; text-align: left; }
+      .stats { gap: 16px; }
+      .stat-value { font-size: 1.4rem; }
+      .hud { align-items: end; }
+      canvas { height: 68vh; min-height: 430px; }
+      .instructions { line-height: 1.5; }
+      .instructions span:last-child { text-align: right; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Arcade / 01</p>
+        <h1>Neon Drift</h1>
+      </div>
+      <p class="tagline">Catch the light. Dodge the dark. How long can you keep the signal alive?</p>
+    </header>
+
+    <section class="game-shell" aria-label="Neon Drift game">
+      <div class="hud">
+        <div class="stats">
+          <div>
+            <span class="stat-label">Score</span>
+            <span class="stat-value" id="score">0000</span>
+          </div>
+          <div>
+            <span class="stat-label">Best</span>
+            <span class="stat-value" id="best">0000</span>
+          </div>
+          <div>
+            <span class="stat-label">Lives</span>
+            <span class="stat-value lives" id="lives">●●●</span>
+          </div>
+        </div>
+        <button id="pauseButton" type="button" aria-label="Pause game">Pause</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" aria-label="Game area"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <h2 id="overlayTitle">Catch the light</h2>
+            <p id="overlayText">Move your shield beneath the cyan orbs. Avoid the pink shards. Use your arrow keys, mouse, or finger.</p>
+            <button id="startButton" type="button">Start game</button>
+          </div>
+        </div>
+      </div>
+      <div class="instructions">
+        <span><strong>← →</strong> or drag to move</span>
+        <span>Catch cyan · avoid pink</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const context = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+    const bestElement = document.getElementById("best");
+    const livesElement = document.getElementById("lives");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayText = document.getElementById("overlayText");
+    const startButton = document.getElementById("startButton");
+    const pauseButton = document.getElementById("pauseButton");
+
+    let width = 800;
+    let height = 580;
+    let animationId;
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let score = 0;
+    let lives = 3;
+    let running = false;
+    let paused = false;
+    let best = Number(localStorage.getItem("neonDriftBest") || 0);
+    let objects = [];
+    const keys = {};
+    const player = { x: 400, y: 0, width: 112, height: 18, speed: 560, targetX: null };
+
+    bestElement.textContent = String(best).padStart(4, "0");
+
+    function resizeCanvas() {
+      const bounds = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      width = Math.max(320, bounds.width);
+      height = Math.max(380, bounds.height);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      player.y = height - 54;
+      if (!running) player.x = width / 2;
+      draw();
+    }
+
+    function resetGame() {
+      score = 0;
+      lives = 3;
+      objects = [];
+      spawnTimer = 0;
+      player.x = width / 2;
+      player.targetX = null;
+      running = true;
+      paused = false;
+      pauseButton.textContent = "Pause";
+      overlay.classList.add("hidden");
+      updateHud();
+      lastTime = performance.now();
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      running = false;
+      paused = false;
+      if (score > best) {
+        best = score;
+        localStorage.setItem("neonDriftBest", String(best));
+      }
+      overlayTitle.textContent = "Signal lost";
+      overlayText.textContent = `You scored ${score} point${score === 1 ? "" : "s"}. The night is ready for another run.`;
+      startButton.textContent = "Play again";
+      overlay.classList.remove("hidden");
+      updateHud();
+    }
+
+    function updateHud() {
+      scoreElement.textContent = String(score).padStart(4, "0");
+      bestElement.textContent = String(best).padStart(4, "0");
+      livesElement.textContent = "●".repeat(lives) + "○".repeat(3 - lives);
+    }
+
+    function spawnObject() {
+      const isOrb = Math.random() > 0.28;
+      const radius = isOrb ? 8 + Math.random() * 5 : 11 + Math.random() * 6;
+      objects.push({
+        x: radius + Math.random() * (width - radius * 2),
+        y: -radius - 8,
+        radius,
+        speed: 140 + Math.random() * 100 + Math.min(score * 1.5, 190),
+        type: isOrb ? "orb" : "hazard",
+        spin: Math.random() * Math.PI * 2,
+        drift: (Math.random() - 0.5) * 0.5
+      });
+    }
+
+    function update(delta) {
+      const direction = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);
+      if (direction) player.x += direction * player.speed * delta;
+      if (player.targetX !== null) player.x += (player.targetX - player.x) * Math.min(delta * 12, 1);
+      player.x = Math.max(player.width / 2, Math.min(width - player.width / 2, player.x));
+
+      spawnTimer += delta;
+      const spawnEvery = Math.max(0.28, 0.72 - score * 0.006);
+      if (spawnTimer >= spawnEvery) {
+        spawnTimer = 0;
+        spawnObject();
+      }
+
+      objects.forEach((item) => {
+        item.y += item.speed * delta;
+        item.x += Math.sin(item.y * 0.01 + item.spin) * item.drift;
+        item.spin += delta * 2;
+      });
+
+      const left = player.x - player.width / 2;
+      const right = player.x + player.width / 2;
+      objects = objects.filter((item) => {
+        const overlaps = item.y + item.radius > player.y - player.height && item.y - item.radius < player.y + player.height && item.x > left - item.radius && item.x < right + item.radius;
+        if (overlaps) {
+          if (item.type === "orb") score += 10;
+          else lives -= 1;
+          updateHud();
+          return false;
+        }
+        if (item.y - item.radius > height) {
+          if (item.type === "orb") lives -= 1;
+          updateHud();
+          return false;
+        }
+        return true;
+      });
+
+      if (lives <= 0) endGame();
+    }
+
+    function drawBackground() {
+      const gradient = context.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, "#121936");
+      gradient.addColorStop(0.58, "#0b1228");
+      gradient.addColorStop(1, "#080b19");
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, width, height);
+
+      context.strokeStyle = "rgba(126, 157, 229, 0.09)";
+      context.lineWidth = 1;
+      for (let x = 20; x < width; x += 42) {
+        context.beginPath(); context.moveTo(x, 0); context.lineTo(x, height); context.stroke();
+      }
+      for (let y = 20; y < height; y += 42) {
+        context.beginPath(); context.moveTo(0, y); context.lineTo(width, y); context.stroke();
+      }
+    }
+
+    function drawPlayer() {
+      const x = player.x - player.width / 2;
+      const y = player.y;
+      context.shadowBlur = 22;
+      context.shadowColor = "#5ef6dc";
+      context.fillStyle = "#5ef6dc";
+      context.beginPath();
+      context.roundRect(x, y, player.width, player.height, 9);
+      context.fill();
+      context.shadowBlur = 0;
+      context.fillStyle = "rgba(255, 255, 255, 0.75)";
+      context.fillRect(x + 18, y + 5, player.width - 36, 3);
+    }
+
+    function drawObject(item) {
+      context.save();
+      context.translate(item.x, item.y);
+      context.rotate(item.spin);
+      if (item.type === "orb") {
+        context.shadowBlur = 18;
+        context.shadowColor = "#ffe66d";
+        context.fillStyle = "#ffe66d";
+        context.beginPath(); context.arc(0, 0, item.radius, 0, Math.PI * 2); context.fill();
+        context.fillStyle = "#fffbe0";
+        context.beginPath(); context.arc(-item.radius * 0.3, -item.radius * 0.3, item.radius * 0.28, 0, Math.PI * 2); context.fill();
+      } else {
+        context.shadowBlur = 16;
+        context.shadowColor = "#ff70b8";
+        context.fillStyle = "#ff70b8";
+        context.beginPath();
+        context.moveTo(0, -item.radius * 1.35);
+        context.lineTo(item.radius * 0.9, item.radius);
+        context.lineTo(-item.radius * 0.9, item.radius);
+        context.closePath();
+        context.fill();
+      }
+      context.restore();
+      context.shadowBlur = 0;
+    }
+
+    function draw() {
+      drawBackground();
+      objects.forEach(drawObject);
+      drawPlayer();
+    }
+
+    function gameLoop(timestamp) {
+      if (!running) return;
+      const delta = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+      if (!paused) update(delta);
+      draw();
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function setTarget(event) {
+      const bounds = canvas.getBoundingClientRect();
+      player.targetX = (event.clientX - bounds.left) * (width / bounds.width);
+    }
+
+    startButton.addEventListener("click", () => {
+      overlayTitle.textContent = "Catch the light";
+      resetGame();
+    });
+
+    pauseButton.addEventListener("click", () => {
+      if (!running) return;
+      paused = !paused;
+      pauseButton.textContent = paused ? "Resume" : "Pause";
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowLeft", "ArrowRight", "a", "d", " "].includes(event.key)) event.preventDefault();
+      keys[event.key] = true;
+      if (event.key === " " && running) {
+        paused = !paused;
+        pauseButton.textContent = paused ? "Resume" : "Pause";
+      }
+    });
+
+    window.addEventListener("keyup", (event) => { keys[event.key] = false; });
+    canvas.addEventListener("pointermove", setTarget);
+    canvas.addEventListener("pointerdown", setTarget);
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>
